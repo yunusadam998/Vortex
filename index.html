@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VORTEX - Profesyonel İletişim Platformu</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'GG Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        body { background-color: #1e1f22; color: #dbdee1; height: 100vh; overflow: hidden; }
+
+        /* AUTH EKRANI */
+        #auth-screen {
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            background: radial-gradient(circle at center, #2b2d31 0%, #111214 100%);
+        }
+        .auth-card {
+            background-color: #313338; padding: 36px; border-radius: 12px; width: 440px;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6); border: 1px solid rgba(255, 255, 255, 0.04);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .auth-card h2 { color: #f2f3f5; text-align: center; margin-bottom: 6px; font-size: 26px; font-weight: 700; letter-spacing: 0.3px; }
+        .auth-subtitle { color: #949ba4; text-align: center; margin-bottom: 24px; font-size: 14px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #b5bac1; letter-spacing: 0.5px; }
+        .input-group input {
+            width: 100%; padding: 12px; background-color: #1e1f22; border: 1px solid transparent; border-radius: 6px; color: #dbdee1; font-size: 15px; outline: none; transition: border-color 0.2s, background-color 0.2s;
+        }
+        .input-group input:focus { border-color: #5865f2; background-color: #111214; }
+        .auth-btn {
+            width: 100%; background-color: #5865f2; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background-color 0.2s, transform 0.1s;
+        }
+        .auth-btn:hover { background-color: #4752c4; }
+        .auth-btn:active { transform: scale(0.99); }
+        .auth-switch { margin-top: 15px; font-size: 14px; color: #00a8fc; cursor: pointer; display: inline-block; font-weight: 500; }
+        .auth-switch:hover { text-decoration: underline; }
+        #message { margin-top: 15px; text-align: center; font-size: 14px; font-weight: 500; }
+
+        /* UYGULAMA EKRANI */
+        #app-screen { display: none; height: 100vh; width: 100vw; display: flex; }
+        .servers-sidebar { width: 76px; background-color: #1e1f22; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; overflow-y: auto; border-right: 1px solid rgba(255,255,255,0.02); }
+        .servers-sidebar::-webkit-scrollbar { width: 0; }
+        .server-icon { 
+            width: 48px; height: 48px; background-color: #313338; border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; cursor: pointer; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+            background-size: cover; background-position: center; position: relative;
+        }
+        .server-icon:hover { border-radius: 16px; background-color: #5865f2; }
+        .server-icon.active { border-radius: 16px; background-color: #5865f2; }
+        .server-icon.add-btn { background-color: #2b2d31; color: #23a55a; font-size: 24px; border: 1px dashed rgba(35, 165, 90, 0.4); }
+        .server-icon.add-btn:hover { background-color: #23a55a; color: white; border-style: solid; border-radius: 16px; }
+        .server-icon.explore-btn { background-color: #2b2d31; color: #00a8fc; font-size: 20px; }
+        .server-icon.explore-btn:hover { background-color: #00a8fc; color: white; border-radius: 16px; }
+
+        .channels-sidebar { width: 240px; background-color: #2b2d31; display: flex; flex-direction: column; position: relative; border-right: 1px solid rgba(0,0,0,0.2); }
+        .channels-header { 
+            height: 48px; border-bottom: 2px solid #1f2023; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-weight: 700; color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: pointer; font-size: 15px; transition: background 0.2s;
+        }
+        .channels-header:hover { background-color: rgba(255,255,255,0.03); }
+        
+        .server-dropdown {
+            position: absolute; top: 54px; left: 8px; right: 8px; background-color: #111214; 
+            border-radius: 8px; padding: 6px; display: none; flex-direction: column; gap: 2px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 100; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .dropdown-item { padding: 10px 12px; border-radius: 4px; font-size: 14px; color: #b5bac1; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; transition: background 0.15s, color 0.15s; }
+        .dropdown-item:hover { background-color: #5865f2; color: white; }
+
+        .channels-list { padding: 16px 8px; flex: 1; overflow-y: auto; }
+        .channels-list::-webkit-scrollbar { width: 4px; }
+        .channels-list::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+        .channel-item { padding: 8px 10px; border-radius: 6px; color: #949ba4; cursor: pointer; margin-bottom: 3px; font-weight: 500; display: flex; justify-content: space-between; align-items: center; font-size: 14px; transition: background 0.15s, color 0.15s; }
+        .channel-item:hover, .channel-item.active { background-color: #35373c; color: #dbdee1; }
+        .channel-item.active { color: white; font-weight: 600; }
+        
+        .user-panel { height: 56px; background-color: #232428; display: flex; align-items: center; padding: 0 8px; justify-content: space-between; }
+        .user-profile-wrapper { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; min-width: 0; padding: 4px; border-radius: 4px; transition: background 0.15s; }
+        .user-profile-wrapper:hover { background-color: rgba(255,255,255,0.05); }
+        .user-avatar { 
+            width: 34px; height: 34px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 14px; 
+            background-size: cover; background-position: center; background-color: #5865f2; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .user-name-tag { font-size: 14px; font-weight: 600; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-settings-btn { background: transparent; border: none; color: #b5bac1; cursor: pointer; font-size: 16px; padding: 6px; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s; }
+        .user-settings-btn:hover { background-color: rgba(255,255,255,0.08); color: white; }
+
+        .main-chat-area { flex: 1; background-color: #313338; display: flex; flex-direction: column; }
+        .chat-header { height: 48px; border-bottom: 2px solid #1f2023; display: flex; align-items: center; padding: 0 16px; font-weight: 700; color: white; box-shadow: 0 1px 2px rgba(0,0,0,0.2); font-size: 15px; }
+        .chat-content { flex: 1; padding: 20px; display: flex; flex-direction: column; justify-content: flex-end; overflow-y: auto; gap: 10px; }
+        .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #1a1b1e; border-radius: 4px; }
+        
+        .message-row { display: flex; gap: 12px; align-items: flex-start; padding: 6px 8px; border-radius: 6px; transition: background 0.15s; }
+        .message-row:hover { background-color: rgba(255,255,255,0.015); }
+        .msg-avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #5865f2; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 16px; flex-shrink: 0; background-size: cover; background-position: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .msg-body { display: flex; flex-direction: column; gap: 2px; }
+        .msg-header { display: flex; align-items: center; gap: 8px; }
+        .msg-username { font-weight: 600; color: white; font-size: 15px; }
+        .msg-text { color: #dbdee1; font-size: 14px; word-break: break-all; line-height: 1.4; }
+
+        .chat-input-box { width: 100%; background-color: #383a40; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02); }
+        .chat-input-box input { width: 100%; background: transparent; border: none; outline: none; color: white; font-size: 15px; }
+        .chat-input-box input::placeholder { color: #80848e; }
+
+        /* ÖZEL SAĞ-TIK / GENEL MENÜ */
+        #context-menu {
+            display: none; position: absolute; background-color: #111214; 
+            border-radius: 6px; padding: 6px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); z-index: 2000; min-width: 160px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .context-menu-item { padding: 8px 10px; border-radius: 4px; font-size: 14px; color: #b5bac1; cursor: pointer; font-weight: 500; transition: background 0.15s, color 0.15s; }
+        .context-menu-item:hover { background-color: #5865f2; color: white; }
+        .context-menu-item.danger { color: #ed4245; }
+        .context-menu-item.danger:hover { background-color: #ed4245; color: white; }
+
+        /* KEŞFET ALANI */
+        .explore-container { padding: 32px; flex: 1; overflow-y: auto; background-color: #313338; }
+        .explore-title { font-size: 26px; font-weight: bold; color: white; margin-bottom: 24px; letter-spacing: 0.3px; }
+        .explore-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px; }
+        .explore-card { background-color: #2b2d31; padding: 24px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 14px; border: 1px solid rgba(255,255,255,0.03); box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.2s, box-shadow 0.2s; }
+        .explore-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+        .explore-card h3 { color: white; font-size: 18px; font-weight: 600; text-align: center; }
+        .join-server-btn { background-color: #23a55a; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; transition: background 0.2s; }
+        .join-server-btn:hover { background-color: #1d8a4c; }
+
+        /* MODALLAR */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.75); justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(2px); }
+        .modal-box { background-color: #313338; width: 440px; border-radius: 10px; overflow: hidden; box-shadow: 0 16px 40px rgba(0,0,0,0.6); padding: 24px; max-height: 90vh; overflow-y: auto; border: 1px solid rgba(255,255,255,0.04); animation: scaleIn 0.2s ease-out; }
+        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-box h3 { color: white; margin-bottom: 18px; font-size: 20px; font-weight: 700; }
+        .modal-box input { width: 100%; padding: 12px; background-color: #1e1f22; border: 1px solid transparent; border-radius: 6px; color: white; margin-bottom: 16px; outline: none; font-size: 14px; transition: border-color 0.2s; }
+        .modal-box input:focus { border-color: #5865f2; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px; }
+        
+        .server-profile-edit-box { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; background: #1e1f22; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.02); }
+        .preview-server-icon { width: 52px; height: 52px; border-radius: 50%; background-color: #5865f2; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; background-size: cover; background-position: center; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+
+    <!-- GİZLİ DOSYA SEÇİCİLERİ -->
+    <input type="file" id="avatarFileInput" accept="image/*" style="display: none;" onchange="handleUserAvatarFileSelect(event)">
+    <input type="file" id="serverIconFileInput" accept="image/*" style="display: none;" onchange="handleServerIconFileSelect(event)">
+    <input type="file" id="settingsAvatarFileInput" accept="image/*" style="display: none;" onchange="handleSettingsAvatarFileSelect(event)">
+
+    <!-- GENEL SAĞ-TIK / MENÜ -->
+    <div id="context-menu"></div>
+
+    <!-- GİRİŞ EKRANI -->
+    <div id="auth-screen">
+        <div class="auth-card">
+            <h2 id="formTitle">VORTEX'e Hoş Geldin</h2>
+            <div class="auth-subtitle" id="formSubtitle">Devam etmek için giriş yap veya hesap oluştur.</div>
+            <form id="authForm">
+                <div class="input-group">
+                    <label>Kullanıcı Adı</label>
+                    <input type="text" id="username" placeholder="Kullanıcı Adınız" required>
+                </div>
+                <div class="input-group">
+                    <label>Şifre</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="auth-btn" id="submitBtn">Giriş Yap</button>
+            </form>
+            <div style="margin-top: 18px; font-size: 14px; color: #949ba4; text-align: center;">
+                <span id="switchPrompt">Hesabın yok mu?</span> 
+                <span class="auth-switch" onclick="toggleMode()" id="switchText">Hesap oluştur</span>
+            </div>
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <!-- UYGULAMA EKRANI -->
+    <div id="app-screen">
+        <div class="servers-sidebar" id="serversSidebar">
+            <div class="server-icon explore-btn" onclick="showExplore()" title="Keşfet">🌐</div>
+            <div style="width: 32px; height: 2px; background-color: #35373c; border-radius: 1px;"></div>
+            <div class="server-icon add-btn" onclick="openServerModal()" title="Sunucu Oluştur">+</div>
+        </div>
+
+        <div class="channels-sidebar">
+            <div class="channels-header" id="channelsHeader" onclick="toggleServerDropdown()">VORTEX</div>
+            
+            <div class="server-dropdown" id="serverDropdown">
+                <div class="dropdown-item" style="color: #949ba4; cursor: default;">Üye Sayısı: <span id="memberCount" style="color:white; font-weight:bold;">1</span></div>
+                <div class="dropdown-item" onclick="openSettingsModal()">Sunucu Ayarları</div>
+            </div>
+
+            <div class="channels-list" id="channelsList">
+                <div class="channel-item" style="color: #949ba4;">Bir sunucu seçin veya keşfedin.</div>
+            </div>
+            
+            <div class="user-panel">
+                <div class="user-profile-wrapper" onclick="openUserSettingsModal()" title="Kullanıcı Ayarları">
+                    <div class="user-avatar" id="userAvatar">V</div>
+                    <div class="user-name-tag" id="displayUsername">Kullanıcı</div>
+                </div>
+                <button class="user-settings-btn" onclick="openUserSettingsModal()" title="Kullanıcı Ayarları">⚙️</button>
+            </div>
+        </div>
+
+        <div class="main-chat-area" id="mainArea">
+            <div class="chat-header" id="chatHeader"># genel</div>
+            <div class="explore-container" id="exploreView" style="display:none;">
+                <div class="explore-title">Keşfet</div>
+                <div class="explore-grid" id="exploreGrid"></div>
+            </div>
+            <div class="chat-content" id="chatView">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input-box">
+                    <input type="text" id="messageInput" placeholder="Mesaj gönder..." onkeypress="handleMessageSend(event)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALLAR -->
+    <div class="modal" id="serverModal">
+        <div class="modal-box">
+            <h3>Sunucu Oluştur</h3>
+            <input type="text" id="serverNameInput" placeholder="Sunucu adı">
+            <div class="modal-footer">
+                <button onclick="closeServerModal()" style="background:transparent; border:none; color:white; cursor:pointer; font-weight:500;">İptal</button>
+                <button onclick="createServer()" class="auth-btn" style="width: auto; padding: 8px 20px;">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUNUCU AYARLARI MODALI -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-box">
+            <h3>Sunucu Ayarları</h3>
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; margin-bottom:6px; display:block;">Sunucu Adı</label>
+            <input type="text" id="editServerNameInput">
+            
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; display:block; margin-bottom:8px;">Sunucu İkonu / Profili</label>
+            <div class="server-profile-edit-box">
+                <div class="preview-server-icon" id="previewServerIcon">S</div>
+                <button type="button" class="auth-btn" style="width: auto; padding: 8px 16px; font-size: 14px;" onclick="triggerServerIconUpload()">Profil Seç</button>
+            </div>
+
+            <div class="modal-footer">
+                <button onclick="closeSettingsModal()" style="background:transparent; border:none; color:white; cursor:pointer; font-weight:500;">İptal</button>
+                <button onclick="updateServerSettings()" class="auth-btn" style="width: auto; padding: 8px 20px;">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KANAL AYARLARI MODALI -->
+    <div class="modal" id="channelSettingsModal">
+        <div class="modal-box">
+            <h3>Kanal Ayarları</h3>
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; margin-bottom:6px; display:block;">Kanal Adı</label>
+            <input type="text" id="editChannelNameInput">
+            <div class="modal-footer">
+                <button onclick="closeChannelSettingsModal()" style="background:transparent; border:none; color:white; cursor:pointer; font-weight:500;">İptal</button>
+                <button onclick="updateChannelSettings()" class="auth-btn" style="width: auto; padding: 8px 20px;">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KANAL OLUŞTURMA MODALI -->
+    <div class="modal" id="channelModal">
+        <div class="modal-box">
+            <h3>Kanal Oluştur</h3>
+            <input type="text" id="channelNameInput" placeholder="kanal-adi">
+            <div class="modal-footer">
+                <button onclick="closeChannelModal()" style="background:transparent; border:none; color:white; cursor:pointer; font-weight:500;">İptal</button>
+                <button onclick="createChannel()" class="auth-btn" style="width: auto; padding: 8px 20px;">Oluştur</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- KULLANICI AYARLARI MODALI (GÜNCELLENMİŞ - PROFİL FOTOĞRAFI DEĞİŞTİRME EKLENDİ) -->
+    <div class="modal" id="userSettingsModal">
+        <div class="modal-box">
+            <h3>Kullanıcı Ayarları</h3>
+            
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; display:block; margin-bottom:8px;">Profil Fotoğrafı</label>
+            <div class="server-profile-edit-box">
+                <div class="preview-server-icon" id="previewSettingsAvatar">V</div>
+                <button type="button" class="auth-btn" style="width: auto; padding: 8px 16px; font-size: 14px;" onclick="triggerSettingsAvatarUpload()">Fotoğraf Değiştir</button>
+            </div>
+
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; margin-bottom:6px; display:block;">Kullanıcı Adı</label>
+            <input type="text" id="editUsernameInput" oninput="checkUserFormChanges()">
+
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; margin-bottom:6px; display:block;">Mevcut Şifre (Şifre değiştirecekseniz zorunlu)</label>
+            <input type="password" id="oldPasswordInput" placeholder="••••••••" oninput="checkUserFormChanges()">
+
+            <label style="font-size:12px; color:#b5bac1; font-weight:700; text-transform:uppercase; margin-bottom:6px; display:block;">Yeni Şifre (Boş bırakırsanız değişmez)</label>
+            <input type="password" id="newPasswordInput" placeholder="••••••••" oninput="checkUserFormChanges()">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; margin-bottom: 15px;">
+                <button onclick="executeLogout()" style="background-color: #ed4245; border:none; color:white; padding: 8px 14px; border-radius: 6px; cursor:pointer; font-weight: 600; font-size: 13px; transition: background 0.2s;">Oturumu Kapat</button>
+                <button id="saveUserChangesBtn" onclick="executeUserSettingsUpdate()" class="auth-btn" style="width: auto; padding: 8px 20px; display: none;">Değişiklikleri Kaydet</button>
+            </div>
+            <div id="userSettingsMessage" style="font-size: 13px; text-align: center; margin-top: 5px;"></div>
+            <div style="text-align: right; margin-top: 10px;">
+                <button onclick="closeUserSettingsModal()" style="background:transparent; border:none; color:#b5bac1; cursor:pointer; font-size: 13px; font-weight: 500;">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentAvatar = null;
+        let servers = [];
+        let currentServer = null;
+        let currentChannel = null;
+        let isLoginMode = true;
+        let tempServerIcon = null;
+        let tempSettingsAvatar = null;
+        let targetChannelForEdit = null;
+        let initialUsernameForEdit = "";
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('vortex_logged_user');
+            const savedAvatar = localStorage.getItem('vortex_logged_avatar');
+            if (savedUser) {
+                currentUser = savedUser;
+                currentAvatar = savedAvatar !== "null" ? savedAvatar : null;
+                startApp();
+            }
+
+            window.addEventListener('click', () => {
+                document.getElementById('context-menu').style.display = 'none';
+            });
+        });
+
+        function toggleMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById('formTitle').textContent = isLoginMode ? "VORTEX'e Hoş Geldin" : "Hesap Oluştur";
+            document.getElementById('submitBtn').textContent = isLoginMode ? "Giriş Yap" : "Kayıt Ol";
+            document.getElementById('switchPrompt').textContent = isLoginMode ? "Hesabın yok mu?" : "Zaten bir hesabın var mı?";
+            document.getElementById('switchText').textContent = isLoginMode ? "Hesap oluştur" : "Giriş yap";
+        }
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
+
+            try {
+                const res = await fetch(`http://localhost:5000${endpoint}`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    currentUser = data.user.username;
+                    currentAvatar = data.user.avatar;
+                    localStorage.setItem('vortex_logged_user', currentUser);
+                    localStorage.setItem('vortex_logged_avatar', currentAvatar);
+                    startApp();
+                } else {
+                    document.getElementById('message').style.color = '#ed4245';
+                    document.getElementById('message').textContent = data.error;
+                }
+            } catch (err) {
+                document.getElementById('message').style.color = '#ed4245';
+                document.getElementById('message').textContent = 'Sunucuya bağlanılamadı!';
+            }
+        });
+
+        async function startApp() {
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-screen').style.display = 'flex';
+            document.getElementById('displayUsername').textContent = currentUser;
+            updateAvatarElements();
+            await fetchServers();
+            showExplore();
+        }
+
+        function updateAvatarElements() {
+            const avatarEl = document.getElementById('userAvatar');
+            if (currentAvatar) {
+                avatarEl.style.backgroundImage = `url(${currentAvatar})`;
+                avatarEl.textContent = '';
+            } else {
+                avatarEl.style.backgroundImage = 'none';
+                avatarEl.textContent = currentUser.charAt(0).toUpperCase();
+            }
+        }
+
+        function triggerAvatarUpload() {
+            document.getElementById('avatarFileInput').click();
+        }
+
+        function handleUserAvatarFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                currentAvatar = e.target.result;
+                localStorage.setItem('vortex_logged_avatar', currentAvatar);
+                updateAvatarElements();
+
+                await fetch('http://localhost:5000/api/auth/avatar', {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser, avatar: currentAvatar })
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function triggerServerIconUpload() {
+            document.getElementById('serverIconFileInput').click();
+        }
+
+        function handleServerIconFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                tempServerIcon = e.target.result;
+                const preview = document.getElementById('previewServerIcon');
+                preview.style.backgroundImage = `url(${tempServerIcon})`;
+                preview.textContent = '';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* YENİ EKLENEN KULLANICI AYARLARI FOTOĞRAF DEĞİŞTİRME FONKSİYONLARI */
+        function triggerSettingsAvatarUpload() {
+            document.getElementById('settingsAvatarFileInput').click();
+        }
+
+        function handleSettingsAvatarFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                tempSettingsAvatar = e.target.result;
+                const preview = document.getElementById('previewSettingsAvatar');
+                preview.style.backgroundImage = `url(${tempSettingsAvatar})`;
+                preview.textContent = '';
+                checkUserFormChanges();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function fetchServers() {
+            const res = await fetch('http://localhost:5000/api/servers');
+            servers = await res.json();
+            if (currentServer) {
+                currentServer = servers.find(s => s.id === currentServer.id);
+            }
+            renderServersSidebar();
+        }
+
+        function renderServersSidebar() {
+            const sidebar = document.getElementById('serversSidebar');
+            sidebar.innerHTML = `
+                <div class="server-icon explore-btn" onclick="showExplore()" title="Keşfet">🌐</div>
+                <div style="width: 32px; height: 2px; background-color: #35373c; border-radius: 1px;"></div>
+                <div class="server-icon add-btn" onclick="openServerModal()" title="Sunucu Oluştur">+</div>
+            `;
+
+            servers.forEach(srv => {
+                const icon = document.createElement('div');
+                icon.className = `server-icon ${currentServer && currentServer.id === srv.id ? 'active' : ''}`;
+                
+                if (srv.icon && srv.icon.startsWith('data:image')) {
+                    icon.style.backgroundImage = `url(${srv.icon})`;
+                    icon.textContent = '';
+                } else {
+                    icon.style.backgroundImage = 'none';
+                    icon.textContent = srv.icon || srv.name.charAt(0).toUpperCase();
+                }
+
+                icon.title = srv.name;
+                icon.onclick = () => joinServer(srv.id);
+
+                icon.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (srv.owner === currentUser) {
+                        showContextMenu(e.clientX, e.clientY, [
+                            { text: 'Sunucuyu Sil', danger: true, action: () => deleteServer(srv.id) }
+                        ]);
+                    }
+                });
+
+                let pressTimer;
+                icon.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => {
+                        const touch = e.touches[0];
+                        if (srv.owner === currentUser) {
+                            showContextMenu(touch.clientX, touch.clientY, [
+                                { text: 'Sunucuyu Sil', danger: true, action: () => deleteServer(srv.id) }
+                            ]);
+                        }
+                    }, 800);
+                });
+                icon.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+
+                sidebar.appendChild(icon);
+            });
+        }
+
+        async function deleteServer(serverId) {
+            if (!confirm("Bu sunucuyu silmek istediğinize emin misiniz?")) return;
+            await fetch(`http://localhost:5000/api/servers/${serverId}`, { method: 'DELETE' });
+            currentServer = null;
+            showExplore();
+            await fetchServers();
+        }
+
+        function showExplore() {
+            currentServer = null;
+            currentChannel = null;
+            document.getElementById('exploreView').style.display = 'block';
+            document.getElementById('chatView').style.display = 'none';
+            document.getElementById('channelsHeader').textContent = "VORTEX";
+            document.getElementById('serverDropdown').style.display = 'none';
+            document.getElementById('chatHeader').textContent = "Keşfet";
+            renderExploreGrid();
+            renderServersSidebar();
+        }
+
+        function renderExploreGrid() {
+            const grid = document.getElementById('exploreGrid');
+            grid.innerHTML = '';
+            servers.forEach(srv => {
+                const card = document.createElement('div');
+                card.className = 'explore-card';
+                
+                let iconStyle = "background-color: #5865f2; width: 64px; height: 64px; font-size: 24px;";
+                let iconText = srv.icon || srv.name.charAt(0).toUpperCase();
+                if (srv.icon && srv.icon.startsWith('data:image')) {
+                    iconStyle += ` background-image: url(${srv.icon});`;
+                    iconText = '';
+                }
+
+                card.innerHTML = `
+                    <div class="server-icon" style="${iconStyle}">${iconText}</div>
+                    <h3>${srv.name}</h3>
+                    <button class="join-server-btn" onclick="joinServer('${srv.id}')">Katıl</button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        async function joinServer(serverId) {
+            const res = await fetch(`http://localhost:5000/api/servers/${serverId}/join`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser })
+            });
+            currentServer = await res.json();
+            await fetchServers();
+
+            document.getElementById('exploreView').style.display = 'none';
+            document.getElementById('chatView').style.display = 'flex';
+            
+            updateHeaderDisplay();
+            renderChannelsList();
+            renderServersSidebar();
+
+            if (currentServer.channels.length > 0) {
+                selectChannel(currentServer.channels[0].id);
+            }
+        }
+
+        function updateHeaderDisplay() {
+            const header = document.getElementById('channelsHeader');
+            if (currentServer.owner === currentUser) {
+                header.innerHTML = `<span>${currentServer.name}</span> <span style="font-size:12px;">▼</span>`;
+            } else {
+                header.innerHTML = `<span>${currentServer.name}</span>`;
+            }
+        }
+
+        function toggleServerDropdown() {
+            if (!currentServer || currentServer.owner !== currentUser) return;
+            const dropdown = document.getElementById('serverDropdown');
+            dropdown.style.display = dropdown.style.display === 'flex' ? 'none' : 'flex';
+            document.getElementById('memberCount').textContent = currentServer.members.length;
+        }
+
+        function renderChannelsList() {
+            const list = document.getElementById('channelsList');
+            const isOwner = currentServer && currentServer.owner === currentUser;
+
+            list.innerHTML = `<div style="font-size:12px; font-weight:bold; color:#949ba4; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; text-transform:uppercase; letter-spacing:0.5px;">
+                <span>METİN KANALLARI</span>
+                ${isOwner ? `<span style="cursor:pointer; font-size:16px;" onclick="openChannelModal()">+</span>` : ''}
+            </div>`;
+
+            currentServer.channels.forEach(ch => {
+                const item = document.createElement('div');
+                item.className = `channel-item ${currentChannel && currentChannel.id === ch.id ? 'active' : ''}`;
+                item.innerHTML = `<span># ${ch.name}</span>`;
+                item.onclick = () => selectChannel(ch.id);
+
+                const openChannelMenu = (clientX, clientY) => {
+                    if (isOwner) {
+                        let menuOptions = [{ text: 'Kanal Ayarları', action: () => openChannelSettingsModal(ch) }];
+                        if (currentServer.channels.length > 1) {
+                            menuOptions.push({ text: 'Kanalı Sil', danger: true, action: () => deleteChannel(ch.id) });
+                        }
+                        showContextMenu(clientX, clientY, menuOptions);
+                    }
+                };
+
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    openChannelMenu(e.clientX, e.clientY);
+                });
+
+                let pressTimer;
+                item.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => {
+                        const touch = e.touches[0];
+                        openChannelMenu(touch.clientX, touch.clientY);
+                    }, 800);
+                });
+                item.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+
+                list.appendChild(item);
+            });
+        }
+
+        async function deleteChannel(channelId) {
+            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${channelId}`, {
+                method: 'DELETE'
+            });
+            currentServer = await res.json();
+            renderChannelsList();
+            if (currentChannel && currentChannel.id === channelId) {
+                if (currentServer.channels.length > 0) {
+                    selectChannel(currentServer.channels[0].id);
+                }
+            }
+        }
+
+        async function selectChannel(channelId) {
+            currentChannel = currentServer.channels.find(c => c.id === channelId);
+            renderChannelsList();
+            document.getElementById('chatHeader').textContent = `# ${currentChannel.name}`;
+            await fetchMessages();
+        }
+
+        async function fetchMessages() {
+            if (!currentServer || !currentChannel) return;
+            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${currentChannel.id}/messages`);
+            const messages = await res.json();
+            renderMessages(messages);
+        }
+
+        function renderMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            messages.forEach(msg => {
+                const row = document.createElement('div');
+                row.className = 'message-row';
+
+                let avatarStyle = "background-color: #5865f2;";
+                let avatarText = msg.username.charAt(0).toUpperCase();
+                if (msg.avatar && msg.avatar.startsWith('data:image')) {
+                    avatarStyle += ` background-image: url(${msg.avatar});`;
+                    avatarText = '';
+                }
+
+                row.innerHTML = `
+                    <div class="msg-avatar" style="${avatarStyle}">${avatarText}</div>
+                    <div class="msg-body">
+                        <div class="msg-header">
+                            <span class="msg-username">${msg.username}</span>
+                        </div>
+                        <div class="msg-text">${msg.text}</div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function handleMessageSend(e) {
+            if (e.key === 'Enter' && currentServer && currentChannel) {
+                const input = document.getElementById('messageInput');
+                const text = input.value.trim();
+                if (!text) return;
+
+                await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${currentChannel.id}/messages`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: currentUser, avatar: currentAvatar, text })
+                });
+
+                input.value = '';
+                await fetchMessages();
+            }
+        }
+
+        function showContextMenu(x, y, options) {
+            const menu = document.getElementById('context-menu');
+            menu.innerHTML = '';
+            options.forEach(opt => {
+                const item = document.createElement('div');
+                item.className = `context-menu-item ${opt.danger ? 'danger' : ''}`;
+                item.textContent = opt.text;
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    menu.style.display = 'none';
+                    opt.action();
+                };
+                menu.appendChild(item);
+            });
+            menu.style.left = `${x}px`;
+            menu.style.top = `${y}px`;
+            menu.style.display = 'block';
+        }
+
+        // MODAL YÖNETİMLERİ
+        function openServerModal() { document.getElementById('serverModal').style.display = 'flex'; }
+        function closeServerModal() { document.getElementById('serverModal').style.display = 'none'; document.getElementById('serverNameInput').value = ''; }
+
+        async function createServer() {
+            const name = document.getElementById('serverNameInput').value.trim();
+            if (!name) return;
+
+            const res = await fetch('http://localhost:5000/api/servers', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, owner: currentUser, icon: tempServerIcon })
+            });
+            if (res.ok) {
+                tempServerIcon = null;
+                closeServerModal();
+                await fetchServers();
+            }
+        }
+
+        function openSettingsModal() {
+            if (!currentServer) return;
+            document.getElementById('editServerNameInput').value = currentServer.name;
+            tempServerIcon = currentServer.icon;
+            const preview = document.getElementById('previewServerIcon');
+            if (tempServerIcon && tempServerIcon.startsWith('data:image')) {
+                preview.style.backgroundImage = `url(${tempServerIcon})`;
+                preview.textContent = '';
+            } else {
+                preview.style.backgroundImage = 'none';
+                preview.textContent = currentServer.icon || currentServer.name.charAt(0).toUpperCase();
+            }
+            document.getElementById('serverDropdown').style.display = 'none';
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function closeSettingsModal() { document.getElementById('settingsModal').style.display = 'none'; tempServerIcon = null; }
+
+        async function updateServerSettings() {
+            const name = document.getElementById('editServerNameInput').value.trim();
+            if (!name) return;
+
+            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, icon: tempServerIcon })
+            });
+            if (res.ok) {
+                currentServer = await res.json();
+                closeSettingsModal();
+                updateHeaderDisplay();
+                await fetchServers();
+            }
+        }
+
+        function openChannelModal() { document.getElementById('channelModal').style.display = 'flex'; }
+        function closeChannelModal() { document.getElementById('channelModal').style.display = 'none'; document.getElementById('channelNameInput').value = ''; }
+
+        async function createChannel() {
+            const name = document.getElementById('channelNameInput').value.trim();
+            if (!name) return;
+
+            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                currentServer = await res.json();
+                closeChannelModal();
+                renderChannelsList();
+            }
+        }
+
+        function openChannelSettingsModal(ch) {
+            targetChannelForEdit = ch;
+            document.getElementById('editChannelNameInput').value = ch.name;
+            document.getElementById('channelSettingsModal').style.display = 'flex';
+        }
+        function closeChannelSettingsModal() { document.getElementById('channelSettingsModal').style.display = 'none'; targetChannelForEdit = null; }
+
+        async function updateChannelSettings() {
+            const name = document.getElementById('editChannelNameInput').value.trim();
+            if (!name || !targetChannelForEdit) return;
+
+            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${targetChannelForEdit.id}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                currentServer = await res.json();
+                closeChannelSettingsModal();
+                renderChannelsList();
+                if (currentChannel && currentChannel.id === targetChannelForEdit.id) {
+                    document.getElementById('chatHeader').textContent = `# ${name}`;
+                }
+            }
+        }
+
+        function openUserSettingsModal() {
+            initialUsernameForEdit = currentUser;
+            tempSettingsAvatar = currentAvatar;
+            document.getElementById('editUsernameInput').value = currentUser;
+            document.getElementById('oldPasswordInput').value = '';
+            document.getElementById('newPasswordInput').value = '';
+            document.getElementById('userSettingsMessage').textContent = '';
+            document.getElementById('saveUserChangesBtn').style.display = 'none';
+
+            const preview = document.getElementById('previewSettingsAvatar');
+            if (currentAvatar && currentAvatar.startsWith('data:image')) {
+                preview.style.backgroundImage = `url(${currentAvatar})`;
+                preview.textContent = '';
+            } else {
+                preview.style.backgroundImage = 'none';
+                preview.textContent = currentUser.charAt(0).toUpperCase();
+            }
+
+            document.getElementById('userSettingsModal').style.display = 'flex';
+        }
+
+        function closeUserSettingsModal() { 
+            document.getElementById('userSettingsModal').style.display = 'none'; 
+            tempSettingsAvatar = null;
+        }
+
+        function checkUserFormChanges() {
+            const newUsername = document.getElementById('editUsernameInput').value.trim();
+            const oldPass = document.getElementById('oldPasswordInput').value;
+            const newPass = document.getElementById('newPasswordInput').value;
+            const saveBtn = document.getElementById('saveUserChangesBtn');
+
+            const hasUsernameChanged = newUsername !== initialUsernameForEdit;
+            const hasPasswordChanged = newPass.length > 0;
+            const hasAvatarChanged = tempSettingsAvatar !== currentAvatar;
+
+            if (hasUsernameChanged || hasPasswordChanged || hasAvatarChanged) {
+                saveBtn.style.display = 'block';
+            } else {
+                saveBtn.style.display = 'none';
+            }
+        }
+
+        async function executeUserSettingsUpdate() {
+            const newUsername = document.getElementById('editUsernameInput').value.trim();
+            const oldPassword = document.getElementById('oldPasswordInput').value;
+            const newPassword = document.getElementById('newPasswordInput').value;
+            const msgEl = document.getElementById('userSettingsMessage');
+
+            if (!newUsername) {
+                msgEl.style.color = '#ed4245';
+                msgEl.textContent = 'Kullanıcı adı boş olamaz!';
+                return;
+            }
+
+            if (newPassword && !oldPassword) {
+                msgEl.style.color = '#ed4245';
+                msgEl.textContent = 'Şifre değiştirmek için mevcut şifrenizi girmelisiniz!';
+                return;
+            }
+
+            try {
+                const res = await fetch('http://localhost:5000/api/auth/update', {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        currentUsername: currentUser,
+                        newUsername: newUsername,
+                        oldPassword: oldPassword,
+                        newPassword: newPassword,
+                        avatar: tempSettingsAvatar
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    currentUser = data.user.username;
+                    currentAvatar = data.user.avatar;
+                    localStorage.setItem('vortex_logged_user', currentUser);
+                    localStorage.setItem('vortex_logged_avatar', currentAvatar);
+                    document.getElementById('displayUsername').textContent = currentUser;
+                    updateAvatarElements();
+
+                    msgEl.style.color = '#23a55a';
+                    msgEl.textContent = 'Değişiklikler başarıyla kaydedildi!';
+                    document.getElementById('saveUserChangesBtn').style.display = 'none';
+                    initialUsernameForEdit = currentUser;
+                    await fetchServers();
+                } else {
+                    msgEl.style.color = '#ed4245';
+                    msgEl.textContent = data.error;
+                }
+            } catch (err) {
+                msgEl.style.color = '#ed4245';
+                msgEl.textContent = 'Güncelleme sırasında hata oluştu!';
+            }
+        }
+
+        function executeLogout() {
+            localStorage.removeItem('vortex_logged_user');
+            localStorage.removeItem('vortex_logged_avatar');
+            location.reload();
+        }
+    </script>
+</body>
+</html>
