@@ -302,6 +302,17 @@
     </div>
 
     <script>
+        // ==============================================================
+        // API ADRESİ - BURASI ÖNEMLİ
+        // Yerelde (localhost) çalıştırırken otomatik olarak localhost:5000 kullanılır.
+        // GitHub Pages'e yüklediğinde ise backend'inizi deploy ettiğiniz
+        // adresi kullanır. Aşağıdaki satırı KENDİ backend adresinizle değiştirin.
+        // Örn: 'https://vortex-backend.onrender.com'
+        // ==============================================================
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000'
+            : 'https://REPLACE-WITH-YOUR-BACKEND-URL.onrender.com';
+
         let currentUser = null;
         let currentAvatar = null;
         let servers = [];
@@ -342,7 +353,7 @@
             const endpoint = isLoginMode ? '/api/auth/login' : '/api/auth/register';
 
             try {
-                const res = await fetch(`http://localhost:5000${endpoint}`, {
+                const res = await fetch(`${API_URL}${endpoint}`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
                 });
@@ -397,7 +408,7 @@
                 localStorage.setItem('vortex_logged_avatar', currentAvatar);
                 updateAvatarElements();
 
-                await fetch('http://localhost:5000/api/auth/avatar', {
+                await fetch(`${API_URL}/api/auth/avatar`, {
                     method: 'PUT', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: currentUser, avatar: currentAvatar })
                 });
@@ -423,7 +434,7 @@
             reader.readAsDataURL(file);
         }
 
-        /* YENİ EKLENEN KULLANICI AYARLARI FOTOĞRAF DEĞİŞTİRME FONKSİYONLARI */
+        /* KULLANICI AYARLARI FOTOĞRAF DEĞİŞTİRME FONKSİYONLARI */
         function triggerSettingsAvatarUpload() {
             document.getElementById('settingsAvatarFileInput').click();
         }
@@ -444,7 +455,7 @@
         }
 
         async function fetchServers() {
-            const res = await fetch('http://localhost:5000/api/servers');
+            const res = await fetch(`${API_URL}/api/servers`);
             servers = await res.json();
             if (currentServer) {
                 currentServer = servers.find(s => s.id === currentServer.id);
@@ -503,7 +514,7 @@
 
         async function deleteServer(serverId) {
             if (!confirm("Bu sunucuyu silmek istediğinize emin misiniz?")) return;
-            await fetch(`http://localhost:5000/api/servers/${serverId}`, { method: 'DELETE' });
+            await fetch(`${API_URL}/api/servers/${serverId}`, { method: 'DELETE' });
             currentServer = null;
             showExplore();
             await fetchServers();
@@ -545,7 +556,7 @@
         }
 
         async function joinServer(serverId) {
-            const res = await fetch(`http://localhost:5000/api/servers/${serverId}/join`, {
+            const res = await fetch(`${API_URL}/api/servers/${serverId}/join`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: currentUser })
             });
@@ -624,7 +635,7 @@
         }
 
         async function deleteChannel(channelId) {
-            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${channelId}`, {
+            const res = await fetch(`${API_URL}/api/servers/${currentServer.id}/channels/${channelId}`, {
                 method: 'DELETE'
             });
             currentServer = await res.json();
@@ -645,7 +656,7 @@
 
         async function fetchMessages() {
             if (!currentServer || !currentChannel) return;
-            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${currentChannel.id}/messages`);
+            const res = await fetch(`${API_URL}/api/servers/${currentServer.id}/channels/${currentChannel.id}/messages`);
             const messages = await res.json();
             renderMessages(messages);
         }
@@ -684,7 +695,7 @@
                 const text = input.value.trim();
                 if (!text) return;
 
-                await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${currentChannel.id}/messages`, {
+                await fetch(`${API_URL}/api/servers/${currentServer.id}/channels/${currentChannel.id}/messages`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: currentUser, avatar: currentAvatar, text })
                 });
@@ -721,7 +732,7 @@
             const name = document.getElementById('serverNameInput').value.trim();
             if (!name) return;
 
-            const res = await fetch('http://localhost:5000/api/servers', {
+            const res = await fetch(`${API_URL}/api/servers`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, owner: currentUser, icon: tempServerIcon })
             });
@@ -754,7 +765,7 @@
             const name = document.getElementById('editServerNameInput').value.trim();
             if (!name) return;
 
-            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}`, {
+            const res = await fetch(`${API_URL}/api/servers/${currentServer.id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, icon: tempServerIcon })
             });
@@ -773,7 +784,7 @@
             const name = document.getElementById('channelNameInput').value.trim();
             if (!name) return;
 
-            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels`, {
+            const res = await fetch(`${API_URL}/api/servers/${currentServer.id}/channels`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
             });
@@ -795,7 +806,7 @@
             const name = document.getElementById('editChannelNameInput').value.trim();
             if (!name || !targetChannelForEdit) return;
 
-            const res = await fetch(`http://localhost:5000/api/servers/${currentServer.id}/channels/${targetChannelForEdit.id}`, {
+            const res = await fetch(`${API_URL}/api/servers/${currentServer.id}/channels/${targetChannelForEdit.id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name })
             });
@@ -871,7 +882,7 @@
             }
 
             try {
-                const res = await fetch('http://localhost:5000/api/auth/update', {
+                const res = await fetch(`${API_URL}/api/auth/update`, {
                     method: 'PUT', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         currentUsername: currentUser,
